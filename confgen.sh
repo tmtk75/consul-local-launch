@@ -13,21 +13,26 @@ EOF
 
 dc_no=${1-1}
 dcname=dc${dc_no}
-p1=$(expr 7 + $dc_no)
+pn=$(echo|awk "{print ($dc_no - 1)* 5}")
 
 for e in `seq 0 4`; do
-  confdir=`pwd`/$dcname/$e
+  nn=$(echo|awk "{print ($dc_no - 1)* 5 + $e}")
+  confdir=`pwd`/$dcname/$nn
   mkdir -p $confdir
   confpath=$confdir/consul.conf
 
   server=false
   bootstrap_expect=''
+  recursors=''
   if [ "$e" -gt 0 ]; then
-    start_join='"127.0.0.1:'${p1}'301"'
+    start_join='"127.0.0.1:83'${pn}'1"'
   fi
   if [ "$e" -lt 3 ]; then
     server=true
     bootstrap_expect='"bootstrap_expect": 3,'
+    if [ "$dc_no" == 1 ]; then
+      recursors='"recursors": ["8.8.8.8", "8.8.4.4"],'
+    fi
   fi
 cat<<EOF > $confpath
 {
@@ -35,16 +40,17 @@ cat<<EOF > $confpath
   "data_dir": "$confdir",
   "log_level": "INFO",
   "ports": {
-    "dns":  ${p1}6${e}0,
-    "http": ${p1}5${e}0,
-    "rpc": ${p1}4${e}0,
-    "server": ${p1}3${e}0,
-    "serf_lan": ${p1}3${e}1,
-    "serf_wan": ${p1}3${e}2
+    "dns":  86${nn}0,
+    "http": 85${nn}0,
+    "rpc": 84${nn}0,
+    "server": 83${nn}0,
+    "serf_lan": 83${nn}1,
+    "serf_wan": 83${nn}2
   },
+  $recursors
   "start_join": [$start_join],
   $bootstrap_expect
-  "node_name": "node${e}",
+  "node_name": "node${nn}",
   "server": $server
 }
 EOF
